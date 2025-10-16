@@ -3,58 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Redirecting to Payment...</title>
+  <title>Redirecting to Razorpay...</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: #f4f4f4;
-    }
-    .box {
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      text-align: center;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>Processing your order...</h2>
-    <p>Please wait, redirecting to payment page.</p>
-  </div>
+  <h2>Redirecting to Razorpay...</h2>
+  <p>If you are not redirected automatically, <a id="redirect-link" href="#">click here</a>.</p>
 
   <script>
-    (async () => {
+    async function redirectToRazorpay() {
       const params = new URLSearchParams(window.location.search);
       let orderNumber = params.get("order");
 
+      // If the order param includes "%23" (URL-encoded '#'), clean it
+      if (orderNumber) {
+        orderNumber = orderNumber.replace(/^#|%23/gi, ""); // removes '#' or '%23'
+      }
+
       if (!orderNumber) {
-        document.body.innerHTML = "<h2>Invalid order link.</h2>";
+        document.body.innerHTML = "<h2>Missing or invalid order number.</h2>";
         return;
       }
 
-      // Fix the #%23 issue
-      orderNumber = orderNumber.replace(/^#/, "").trim();
-
       try {
-        const res = await fetch(`/.netlify/functions/create-payment-link?order=${orderNumber}`);
-        const data = await res.json();
+        const response = await fetch(`/.netlify/functions/create-payment-link?order=${encodeURIComponent(orderNumber)}`);
+        const data = await response.json();
 
-        if (data.url) {
-          window.location.href = data.url;
+        if (data.success && data.payment_url) {
+          document.getElementById("redirect-link").href = data.payment_url;
+          setTimeout(() => window.location.href = data.payment_url, 2000);
         } else {
-          document.body.innerHTML = "<h2>Error: Payment link not found.</h2>";
+          document.body.innerHTML = "<h2>Failed to create payment link.</h2>";
+          console.error(data.error);
         }
       } catch (err) {
-        document.body.innerHTML = "<h2>Server error. Try again later.</h2>";
         console.error(err);
+        document.body.innerHTML = "<h2>Error occurred. Check console.</h2>";
       }
-    })();
+    }
+
+    redirectToRazorpay();
   </script>
 </body>
 </html>
