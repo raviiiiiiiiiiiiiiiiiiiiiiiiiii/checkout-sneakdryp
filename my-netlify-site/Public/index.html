@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redirecting to Payment...</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f4f4f4;
+    }
+    .box {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Processing your order...</h2>
+    <p>Please wait, redirecting to payment page.</p>
+  </div>
+
+  <script>
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      let orderNumber = params.get("order");
+
+      if (!orderNumber) {
+        document.body.innerHTML = "<h2>Invalid order link.</h2>";
+        return;
+      }
+
+      // Fix the #%23 issue
+      orderNumber = orderNumber.replace(/^#/, "").trim();
+
+      try {
+        const res = await fetch(`/.netlify/functions/create-payment-link?order=${orderNumber}`);
+        const data = await res.json();
+
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          document.body.innerHTML = "<h2>Error: Payment link not found.</h2>";
+        }
+      } catch (err) {
+        document.body.innerHTML = "<h2>Server error. Try again later.</h2>";
+        console.error(err);
+      }
+    })();
+  </script>
+</body>
+</html>
